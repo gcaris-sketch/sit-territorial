@@ -107,18 +107,20 @@ def cargar_mapa_cache(ruta_o_bytes):
     """Lee el archivo geográfico/mapa 1 sola vez y lo guarda en la RAM."""
     return gpd.read_file(ruta_o_bytes)
 
+import fiona
+import geopandas as gpd
+import pandas as pd
+import plotly.express as px
+import requests
+from bs4 import BeautifulSoup
+import kaleido
+import matplotlib.pyplot as plt
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
 from folium.plugins import HeatMap, MarkerCluster
 
-fiona.drvsupport.supported_drivers['Shapefile'] = 'r'
-
-import streamlit as st
-import folium
-from streamlit_folium import st_folium
-from folium.plugins import HeatMap, MarkerCluster
-
+# Ahora sí, esta línea funcionará porque fiona ya fue importado arriba:
 fiona.drvsupport.supported_drivers['Shapefile'] = 'r'
 
 st.set_page_config(layout="wide", page_title="SIT - Inteligencia Territorial Avanzada")
