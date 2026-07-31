@@ -8,6 +8,6 @@ plotly
 requests
 beautifulsoup4
 matplotlib
-fiona
 branca
 jinja2
+pyogrio
