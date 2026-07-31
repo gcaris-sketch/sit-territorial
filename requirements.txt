@@ -1,0 +1,13 @@
+streamlit
+pandas
+geopandas
+folium
+streamlit-folium
+openpyxl
+plotly
+requests
+beautifulsoup4
+matplotlib
+fiona
+branca
+jinja2
