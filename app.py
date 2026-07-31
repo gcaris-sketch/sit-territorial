@@ -102,28 +102,17 @@ def cargar_mapa_cache(ruta_o_bytes):
     """Lee el archivo geográfico/mapa 1 sola vez y lo guarda en la RAM."""
     return gpd.read_file(ruta_o_bytes)
 
-# ==============================================================================
-# INSTALADOR DE DEPENDENCIAS
-# ==============================================================================
-try:
-    import fiona
-    import geopandas as gpd
-    import pandas as pd
-    import plotly.express as px
-    import requests
-    from bs4 import BeautifulSoup
-    import kaleido
-    import matplotlib.pyplot as plt
-except ModuleNotFoundError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "fiona", "geopandas", "openpyxl", "plotly", "requests", "beautifulsoup4", "kaleido", "matplotlib", "python-calamine"])
-    import fiona
-    import geopandas as gpd
-    import pandas as pd
-    import plotly.express as px
-    import requests
-    from bs4 import BeautifulSoup
-    import kaleido
-    import matplotlib.pyplot as plt
+@st.cache_data
+def cargar_mapa_cache(ruta_o_bytes):
+    """Lee el archivo geográfico/mapa 1 sola vez y lo guarda en la RAM."""
+    return gpd.read_file(ruta_o_bytes)
+
+import streamlit as st
+import folium
+from streamlit_folium import st_folium
+from folium.plugins import HeatMap, MarkerCluster
+
+fiona.drvsupport.supported_drivers['Shapefile'] = 'r'
 
 import streamlit as st
 import folium
