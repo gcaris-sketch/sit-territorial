@@ -1,17 +1,15 @@
-import subprocess
-import sys
 import os
-import time
-import urllib.parse
-import re
-import io
-import base64
-import difflib
-from datetime import datetime, date, timedelta
-import unicodedata
+import sys
+import streamlit as st
 import pandas as pd
 import geopandas as gpd
-import streamlit as st  # 1. IMPORTANTE: Nos aseguramos de importar Streamlit aquí
+import plotly.express as px
+import plotly.graph_objects as go
+import folium
+from streamlit_folium import st_folium
+import matplotlib.pyplot as plt
+import requests
+from bs4 import BeautifulSoup
 
 # --- PEGA LAS IMPORTACIONES AQUÍ ---
 from branca.element import MacroElement
