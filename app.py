@@ -628,6 +628,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # PLANIFICADOR DE RUTA Y CONFIGURACIÓN BASE
+with st.sidebar:
     st.markdown("---")
     st.markdown("### 🗺️ Guía de Navegación")
     
