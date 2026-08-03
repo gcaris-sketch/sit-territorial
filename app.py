@@ -255,7 +255,6 @@ if "comuna_activa" not in st.session_state:
     st.session_state.comuna_activa = "REGION COMPLETA (Ver Todo)"
 if "capas_activas" not in st.session_state: st.session_state.capas_activas = ["Limites Comunales", "Ferreterias (Calor - R: 2km Fijo)", "Calor Obras: Inmobiliario", "Calor Obras: Energía y Minería", "Calor Obras: Otros Sectores"]
 if "ruta_ferreterias" not in st.session_state: st.session_state.ruta_ferreterias = []
-if "ruta_obras" not in st.session_state: st.session_state.ruta_obras = []
 
 # ==============================================================================
 # CARGA Y EXTRACCIÓN DE DATOS (OPTIMIZADO CON CACHÉ)
@@ -629,64 +628,25 @@ st.markdown(f"""
 
 # PLANIFICADOR DE RUTA Y CONFIGURACIÓN BASE
 with st.sidebar:
+    st.markdown("### Estilo del Mapa")
+    mapa_base_seleccionado = st.radio(
+        "Selecciona el Mapa Base:", 
+        ["Claro (Ejecutivo)", "Físico (Topográfico)"], 
+        index=0
+    )
     st.markdown("---")
-    st.markdown("### 🗺️ Guía de Navegación")
-    
-    vendedora_destino = st.text_input("Vendedora a cargo:", placeholder="Ej: María Pérez")
-    
-    total_ruta = len(st.session_state.ruta_ferreterias) + len(st.session_state.ruta_obras)
-    st.markdown(f"**Puntos en ruta:** {total_ruta}")
-    
-    if total_ruta > 0:
-        texto_guia = f"GUÍA DE NAVEGACIÓN COMERCIAL\n"
-        texto_guia += f"================================\n"
-        texto_guia += f"Fecha: {date.today().strftime('%d/%m/%Y')}\n"
-        texto_guia += f"Vendedora Asignada: {vendedora_destino.upper() if vendedora_destino else 'NO ESPECIFICADA'}\n\n"
-        
-        if st.session_state.ruta_ferreterias:
-            texto_guia += "🛠️ FERRETERÍAS A VISITAR\n"
-            texto_guia += "--------------------------------\n"
-            puntos_ruta = []
-            for i, f_id in enumerate(st.session_state.ruta_ferreterias):
-                row_f = df_ferreterias.loc[f_id]
-                tel = row_f.get('telefono', 'S/N')
-                link = row_f.get('url_google_maps') or f"https://www.google.com/maps/search/?api=1&query={row_f['lat']},{row_f['lon']}"
-                texto_guia += f"{i+1}. {row_f['nombre'].upper()}\n"
-                texto_guia += f"   - Dirección: {row_f['direccion']}, {row_f['comuna']}\n"
-                texto_guia += f"   - Teléfono: {tel}\n"
-                texto_guia += f"   - Mapa: {link}\n\n"
-                puntos_ruta.append(f"{row_f['lat']},{row_f['lon']}")
-                
-            if puntos_ruta:
-                url_gmaps = f"https://www.google.com/maps/dir/?api=1&destination={puntos_ruta[-1]}" + (f"&waypoints={urllib.parse.quote('|'.join(puntos_ruta[:-1]))}" if len(puntos_ruta)>1 else "")
-                st.link_button("🚗 Ruta Ferreterías en Maps", url_gmaps, use_container_width=True)
-
-        if st.session_state.ruta_obras:
-            texto_guia += "🏗️ OBRAS SEIA A VISITAR\n"
-            texto_guia += "--------------------------------\n"
-            for i, o_id in enumerate(st.session_state.ruta_obras):
-                row_o = df_obras.loc[o_id]
-                link = row_o.get('url_seia', 'S/N')
-                mapa_obra = f"https://www.google.com/maps/search/?api=1&query={row_o['lat']},{row_o['lon']}"
-                texto_guia += f"{i+1}. {str(row_o['titulo']).upper()}\n"
-                texto_guia += f"   - Titular: {row_o.get('empresa', 'S/N')}\n"
-                texto_guia += f"   - Comuna: {row_o['comuna']}\n"
-                texto_guia += f"   - Ficha SEIA: {link}\n"
-                texto_guia += f"   - Mapa: {mapa_obra}\n\n"
-
-        # Botón de Descarga
-        st.download_button(
-            label="📄 Descargar Guía (TXT)",
-            data=texto_guia,
-            file_name=f"Guia_Ruta_{vendedora_destino.replace(' ', '_')}_{date.today()}.txt",
-            mime="text/plain",
-            use_container_width=True
-        )
-
-        if st.button("🗑️ Limpiar Ruta Completa", use_container_width=True): 
-            st.session_state.ruta_ferreterias = []
-            st.session_state.ruta_obras = []
-            st.rerun()
+    st.markdown("### Planificador de Rutas")
+    if st.session_state.ruta_ferreterias:
+        st.markdown(f"**Locales en ruta:** {len(st.session_state.ruta_ferreterias)}")
+        puntos_ruta = []
+        for i, f_id in enumerate(st.session_state.ruta_ferreterias):
+            row_f = df_ferreterias.loc[f_id]
+            st.caption(f"{i+1}. {row_f['nombre'].upper()}")
+            puntos_ruta.append(f"{row_f['lat']},{row_f['lon']}")
+        if puntos_ruta:
+            url_gmaps = f"https://www.google.com/maps/dir/?api=1&destination={puntos_ruta[-1]}" + (f"&waypoints={urllib.parse.quote('|'.join(puntos_ruta[:-1]))}" if len(puntos_ruta)>1 else "")
+            st.link_button("Exportar a Maps", url_gmaps, use_container_width=True)
+        if st.button("Limpiar Ruta"): st.session_state.ruta_ferreterias = []; st.rerun()
 
 # Selector de capas limpio en Streamlit
 st.session_state.capas_activas = st.multiselect(
@@ -857,7 +817,6 @@ if nav_principal == "🗺️ 1. Mapa Oportunidades y Obras":
         attribution = "Map data: &copy; OpenStreetMap | Style: &copy; OpenTopoMap" if mapa_base_seleccionado == "Físico (Topográfico)" else "CartoDB"
 
         m = folium.Map(location=[centro_lat, centro_lon], zoom_start=zoom_dinamico, tiles=tiles_url, attr=attribution)
-        EasyPrint(position="topright").add_to(m)
 
         # 1. CAPA: LÍMITES COMUNALES
         if "Limites Comunales" in st.session_state.capas_activas and not gdf_mapa.empty:
@@ -947,26 +906,6 @@ if nav_principal == "🗺️ 1. Mapa Oportunidades y Obras":
 
         st_folium(m, width="100%", height=650, key=f"mapa_principal", returned_objects=[])
 
-# --- PEGA EL BLOQUE AQUÍ, DENTRO DE "with col_izq:" ---
-        st.markdown("---")
-        st.markdown("### 📊 Resumen de Infraestructura y Obras Mapeadas")
-        c_graf1, c_graf2 = st.columns(2)
-        with c_graf1:
-            if not df_final_obras.empty:
-                fig1 = px.pie(df_final_obras, values='monto', names='sector_productivo', title='Inversión por Sector Productivo (USD)', hole=0.3)
-                fig1.update_layout(margin=dict(t=40, b=0, l=0, r=0))
-                st.plotly_chart(fig1, use_container_width=True)
-            else:
-                st.info("Sin datos para graficar inversión.")
-                
-        with c_graf2:
-            if not df_final_obras.empty:
-                fig2 = px.histogram(df_final_obras, x='estado_proyecto', title='Cantidad de Obras por Estado', color='estado_proyecto')
-                fig2.update_layout(margin=dict(t=40, b=0, l=0, r=0), showlegend=False)
-                st.plotly_chart(fig2, use_container_width=True)
-            else:
-                st.info("Sin datos para graficar estados de obra.")
-
     with col_der:
         st.markdown('<div class="list-title-panel">Listados de Control Focalizado</div>', unsafe_allow_html=True)
         vista_detalle = st.radio("Ver detalle de:", ["Canales", "Infraestructura"], horizontal=True, label_visibility="collapsed", key="radio_detalle_listado")
@@ -1014,21 +953,36 @@ if nav_principal == "🗺️ 1. Mapa Oportunidades y Obras":
                             unsafe_allow_html=True
                         )
                         if pd.notnull(row.get('url_seia')) and str(row.get('url_seia')).startswith("http"):
-                            c_lk, c_sc, c_rt = st.columns(3) # Cambiamos de 2 a 3 columnas
+                            c_lk, c_sc = st.columns(2)
                             with c_lk: 
-                                st.link_button("🔗 Ficha", str(row['url_seia']), use_container_width=True)
+                                st.link_button("🔗 Ficha SEIA", str(row['url_seia']), use_container_width=True)
                             with c_sc:
-                                if st.button("📧 Info", key=f"s_{idx}", use_container_width=True): 
+                                if st.button("📧 Contacto", key=f"s_{idx}", use_container_width=True): 
                                     st.session_state[f"c_{idx}"] = extraer_correo_seia(row['url_seia'])
-                            with c_rt: # NUEVO BOTÓN
-                                if idx not in st.session_state.ruta_obras:
-                                    if st.button("➕ Ruta", key=f"ro_{idx}", use_container_width=True): 
-                                        st.session_state.ruta_obras.append(idx)
-                                        st.rerun()
-                                else: 
-                                    st.button("✅ Ok", disabled=True, key=f"rok_o_{idx}", use_container_width=True)
+                            if f"c_{idx}" in st.session_state: 
+                                st.info(st.session_state[f"c_{idx}"])
             else:
                 st.info("Sin proyectos de infraestructura registrados.")
+
+    # GRÁFICOS DE RESUMEN AL FINAL DE LA VISTA 1
+    st.markdown("---")
+    st.markdown("### 📊 Resumen de Infraestructura y Obras Mapeadas")
+    c_graf1, c_graf2 = st.columns(2)
+    with c_graf1:
+        if not df_final_obras.empty:
+            fig1 = px.pie(df_final_obras, values='monto', names='sector_productivo', title='Inversión por Sector Productivo (USD)', hole=0.3)
+            fig1.update_layout(margin=dict(t=40, b=0, l=0, r=0))
+            st.plotly_chart(fig1, use_container_width=True)
+        else:
+            st.info("Sin datos para graficar inversión.")
+            
+    with c_graf2:
+        if not df_final_obras.empty:
+            fig2 = px.histogram(df_final_obras, x='estado_proyecto', title='Cantidad de Obras por Estado', color='estado_proyecto')
+            fig2.update_layout(margin=dict(t=40, b=0, l=0, r=0), showlegend=False)
+            st.plotly_chart(fig2, use_container_width=True)
+        else:
+            st.info("Sin datos para graficar estados de obra.")
 
 # ==============================================================================
 # VISTA 2: ANÁLISIS CARTERA DE CLIENTES
@@ -1044,7 +998,6 @@ elif nav_principal == "👥 2. Analisis Cartera de Clientes":
             st.markdown("### Concentración Comunitaria (Clientes Asignados)")
             if not df_asignados.empty and not gdf_mapa.empty:
                 m_cli = folium.Map(location=[-34.4200, -71.0500], zoom_start=9, tiles="cartodb positron")
-                EasyPrint(position="topright").add_to(m_cli)
                 df_c_cli = df_asignados.copy()
                 df_c_cli['comuna_match'] = df_c_cli['Comuna'].apply(limpiar_comuna)
                 gdf_temp_cli = gdf_mapa.copy()
@@ -1302,7 +1255,6 @@ elif nav_principal == "🎯 3. Dominio Territorial y Cartera":
                 mapa_colores = {v: colores_v[i % len(colores_v)] for i, v in enumerate(vendedores_unicos)}
 
                 m_dominio = folium.Map(location=[-34.4200, -71.0500], zoom_start=9, tiles="cartodb positron")
-                EasyPrint(position="topright").add_to(m_dominio)
                 gdf_temp_dom = gdf_mapa.copy()
                 gdf_temp_dom['comuna_match'] = gdf_temp_dom[col_comuna_shp].apply(limpiar_comuna)
 
@@ -1338,7 +1290,6 @@ elif nav_principal == "🎯 3. Dominio Territorial y Cartera":
             with c_m:
                 if not gdf_mapa.empty and not df_riesgo.empty:
                     m_riesgo = folium.Map(location=[-34.4200, -71.0500], zoom_start=9, tiles="cartodb positron")
-		    EasyPrint(position="topright").add_to(m_riesgo)
                     df_agg_riesgo = df_riesgo.groupby('comuna_match').size().reset_index(name='Clientes_En_Riesgo')
                     gdf_temp_riesgo = gdf_mapa.copy()
                     gdf_temp_riesgo['comuna_match'] = gdf_temp_riesgo[col_comuna_shp].apply(limpiar_comuna)
