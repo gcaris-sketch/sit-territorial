@@ -227,6 +227,17 @@ def filtrar_coordenadas_validas(df):
     return df[(df['lat'] >= LAT_MIN) & (df['lat'] <= LAT_MAX) & (df['lon'] >= LON_MIN) & (df['lon'] <= LON_MAX)]
 
 # ==============================================================================
+# FUNCION AUXILIAR PARA FORMATO DE MONEDA
+# ==============================================================================
+def formatear_dinero(monto):
+    if pd.isna(monto) or monto == 0:
+        return "$ 0"
+    try:
+        return f"$ {int(monto):,}".replace(",", ".")
+    except:
+        return "$ 0"
+
+# ==============================================================================
 # ESTILOS CSS PERSONALIZADOS
 # ==============================================================================
 st.markdown("""
@@ -743,18 +754,6 @@ with st.sidebar:
 # ==============================================================================
 
 import numpy as np
-
-# ==============================================================================
-# FUNCION AUXILIAR PARA FORMATO DE MONEDA
-# ==============================================================================
-def formatear_dinero(monto):
-    if pd.isna(monto) or monto == 0:
-        return "$ 0"
-    try:
-        return f"$ {int(monto):,}".replace(",", ".")
-    except:
-        return "$ 0"
-
 import pandas as pd
 import numpy as np
 
