@@ -964,25 +964,25 @@ if nav_principal == "🗺️ 1. Mapa Oportunidades y Obras":
             else:
                 st.info("Sin proyectos de infraestructura registrados.")
 
-        # GRÁFICOS DE RESUMEN AL FINAL DE LA VISTA 1
-        st.markdown("---")
-        st.markdown("### 📊 Resumen de Infraestructura y Obras Mapeadas")
-        c_graf1, c_graf2 = st.columns(2)
-        with c_graf1:
-            if not df_final_obras.empty:
-                fig1 = px.pie(df_final_obras, values='monto', names='sector_productivo', title='Inversión por Sector Productivo (USD)', hole=0.3)
-                fig1.update_layout(margin=dict(t=40, b=0, l=0, r=0))
-                st.plotly_chart(fig1, use_container_width=True)
-            else:
-                st.info("Sin datos para graficar inversión.")
-                
-        with c_graf2:
-            if not df_final_obras.empty:
-                fig2 = px.histogram(df_final_obras, x='estado_proyecto', title='Cantidad de Obras por Estado', color='estado_proyecto')
-                fig2.update_layout(margin=dict(t=40, b=0, l=0, r=0), showlegend=False)
-                st.plotly_chart(fig2, use_container_width=True)
-            else:
-                st.info("Sin datos para graficar estados de obra.")
+    # GRÁFICOS DE RESUMEN AL FINAL DE LA VISTA 1
+    st.markdown("---")
+    st.markdown("### 📊 Resumen de Infraestructura y Obras Mapeadas")
+    c_graf1, c_graf2 = st.columns(2)
+    with c_graf1:
+        if not df_final_obras.empty:
+            fig1 = px.pie(df_final_obras, values='monto', names='sector_productivo', title='Inversión por Sector Productivo (USD)', hole=0.3)
+            fig1.update_layout(margin=dict(t=40, b=0, l=0, r=0))
+            st.plotly_chart(fig1, use_container_width=True)
+        else:
+            st.info("Sin datos para graficar inversión.")
+            
+    with c_graf2:
+        if not df_final_obras.empty:
+            fig2 = px.histogram(df_final_obras, x='estado_proyecto', title='Cantidad de Obras por Estado', color='estado_proyecto')
+            fig2.update_layout(margin=dict(t=40, b=0, l=0, r=0), showlegend=False)
+            st.plotly_chart(fig2, use_container_width=True)
+        else:
+            st.info("Sin datos para graficar estados de obra.")
 
 # ==============================================================================
 # VISTA 2: ANÁLISIS CARTERA DE CLIENTES
