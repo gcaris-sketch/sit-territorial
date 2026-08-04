@@ -255,6 +255,7 @@ if "comuna_activa" not in st.session_state:
     st.session_state.comuna_activa = "REGION COMPLETA (Ver Todo)"
 if "capas_activas" not in st.session_state: st.session_state.capas_activas = ["Limites Comunales", "Ferreterias (Calor - R: 2km Fijo)", "Calor Obras: Inmobiliario", "Calor Obras: Energía y Minería", "Calor Obras: Otros Sectores"]
 if "ruta_ferreterias" not in st.session_state: st.session_state.ruta_ferreterias = []
+if "ruta_obras" not in st.session_state: st.session_state.ruta_obras = []
 
 # ==============================================================================
 # CARGA Y EXTRACCIÓN DE DATOS (OPTIMIZADO CON CACHÉ)
@@ -636,42 +637,106 @@ with st.sidebar:
     )
     st.markdown("---")
     st.markdown("### Planificador de Rutas")
-    if st.session_state.ruta_ferreterias:
-        st.markdown(f"**Locales en ruta:** {len(st.session_state.ruta_ferreterias)}")
-        puntos_ruta = []
-        for i, f_id in enumerate(st.session_state.ruta_ferreterias):
-            row_f = df_ferreterias.loc[f_id]
-            st.caption(f"{i+1}. {row_f['nombre'].upper()}")
-            puntos_ruta.append(f"{row_f['lat']},{row_f['lon']}")
-        if puntos_ruta:
-            url_gmaps = f"https://www.google.com/maps/dir/?api=1&destination={puntos_ruta[-1]}" + (f"&waypoints={urllib.parse.quote('|'.join(puntos_ruta[:-1]))}" if len(puntos_ruta)>1 else "")
-            st.link_button("Exportar a Maps", url_gmaps, use_container_width=True)
-        if st.button("Limpiar Ruta"): st.session_state.ruta_ferreterias = []; st.rerun()
+    
+    total_ruta = len(st.session_state.ruta_ferreterias) + len(st.session_state.ruta_obras)
+    
+    if total_ruta > 0:
+        st.markdown(f"**Elementos en ruta:** {total_ruta} (Ferr: {len(st.session_state.ruta_ferreterias)} | Obras: {len(st.session_state.ruta_obras)})")
+        
+        # 1. Configuración de la Guía
+        vendedora_nombre = st.text_input("Vendedora Asignada:", placeholder="Ej: Carolina López")
+        
+        # 2. Generador del Archivo HTML (Guía de Navegación)
+        html_guia = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="UTF-8">
+        <style>
+            body {{ font-family: Arial, sans-serif; color: #2c3e50; margin: 20px; background-color: #f8f9fa; }}
+            .header {{ background-color: #1a5276; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+            .header h1 {{ margin: 0 0 10px 0; font-size: 24px; }}
+            .header p {{ margin: 5px 0; font-size: 14px; }}
+            .section-title {{ font-size: 18px; color: #1a5276; border-bottom: 2px solid #2980b9; padding-bottom: 5px; margin-top: 30px; margin-bottom: 15px; }}
+            .card {{ background-color: white; border-left: 5px solid #2980b9; padding: 15px; margin-bottom: 15px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }}
+            .card-obra {{ border-left: 5px solid #27ae60; }}
+            .card h3 {{ margin: 0 0 10px 0; font-size: 16px; color: #2c3e50; }}
+            .info-row {{ margin-bottom: 6px; font-size: 13px; }}
+            .label {{ font-weight: bold; color: #7f8c8d; }}
+            .link-btn {{ display: inline-block; background-color: #3498db; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-size: 12px; margin-top: 10px; font-weight: bold; }}
+            .link-btn-green {{ background-color: #27ae60; }}
+        </style>
+        </head>
+        <body>
+        <div class="header">
+            <h1>📍 Guía de Navegación Territorial</h1>
+            <p><strong>Vendedora Asignada:</strong> {vendedora_nombre if vendedora_nombre else "No especificada"}</p>
+            <p><strong>Fecha de Emisión:</strong> {date.today().strftime('%d/%m/%Y')}</p>
+            <p><strong>Zona de Foco:</strong> {st.session_state.comuna_activa}</p>
+        </div>
+        """
 
-# Selector de capas limpio en Streamlit
-st.session_state.capas_activas = st.multiselect(
-    "Capas y Herramientas del Mapa:", 
-    [
-        "Limites Comunales", 
-        "Coroplético: Densidad Ferreterías",
-        "Coroplético: Inversión Obras (USD)",
-        "Ferreterias (Puntos)", 
-        "Ferreterias (Clusters)", 
-        "Ferreterias (Calor - R: 2km Fijo)", 
-        "Obras (Puntos)", 
-        "Obras (Clusters)", 
-        "Calor Obras: Inmobiliario",
-        "Calor Obras: Energía y Minería",
-        "Calor Obras: Otros Sectores"
-    ], 
-    default=[
-        "Limites Comunales", 
-        "Ferreterias (Calor - R: 2km Fijo)", 
-        "Calor Obras: Inmobiliario", 
-        "Calor Obras: Energía y Minería", 
-        "Calor Obras: Otros Sectores"
-    ]
-)
+        # Agregar Ferreterías a la Guía
+        if st.session_state.ruta_ferreterias:
+            html_guia += '<div class="section-title">🛠️ Ferreterías en la Ruta</div>'
+            puntos_ruta_maps = []
+            
+            for i, f_id in enumerate(st.session_state.ruta_ferreterias):
+                row_f = df_ferreterias.loc[f_id]
+                puntos_ruta_maps.append(f"{row_f['lat']},{row_f['lon']}")
+                
+                html_guia += f"""
+                <div class="card">
+                    <h3>{i+1}. {row_f['nombre'].upper()}</h3>
+                    <div class="info-row"><span class="label">📍 Dirección:</span> {row_f.get('direccion', 'S/D')}</div>
+                    <div class="info-row"><span class="label">☎ Teléfono:</span> {row_f.get('telefono', 'S/N')}</div>
+                    <div class="info-row"><span class="label">⭐ Calificación:</span> {row_f.get('calificacion', 'S/N')}</div>
+                    <a href="https://www.google.com/maps/search/?api=1&query={row_f['lat']},{row_f['lon']}" target="_blank" class="link-btn">Ver en Google Maps</a>
+                </div>
+                """
+                
+            # Botón global de ruta Maps para ferreterías
+            if puntos_ruta_maps:
+                url_gmaps = f"https://www.google.com/maps/dir/?api=1&destination={puntos_ruta_maps[-1]}" + (f"&waypoints={urllib.parse.quote('|'.join(puntos_ruta_maps[:-1]))}" if len(puntos_ruta_maps)>1 else "")
+                st.link_button("🗺️ Ruta de Ferreterías en Maps", url_gmaps, use_container_width=True)
+
+        # Agregar Obras a la Guía
+        if st.session_state.ruta_obras:
+            html_guia += '<div class="section-title">🏗️ Obras y Proyectos SEIA en la Ruta</div>'
+            
+            for i, o_id in enumerate(st.session_state.ruta_obras):
+                row_o = df_obras.loc[o_id]
+                contactos = st.session_state.get(f"c_{o_id}", "Generar en panel principal")
+                
+                html_guia += f"""
+                <div class="card card-obra">
+                    <h3>{i+1}. {row_o['titulo'].upper()}</h3>
+                    <div class="info-row"><span class="label">🏢 Titular:</span> {row_o.get('empresa', 'S/D')}</div>
+                    <div class="info-row"><span class="label">📍 Comuna:</span> {row_o.get('comuna', 'S/D')}</div>
+                    <div class="info-row"><span class="label">💵 Inversión:</span> {formatear_dinero(row_o['monto'])} USD</div>
+                    <div class="info-row"><span class="label">📧 Contactos:</span> {contactos}</div>
+                    <a href="{row_o.get('url_seia', '#')}" target="_blank" class="link-btn link-btn-green">Ver Ficha SEIA</a>
+                    <a href="https://www.google.com/maps/search/?api=1&query={row_o['lat']},{row_o['lon']}" target="_blank" class="link-btn">Ruta a la Obra</a>
+                </div>
+                """
+                
+        html_guia += "</body></html>"
+        
+        # 3. Botón de Descarga
+        nombre_archivo = f"Guia_Ruta_{vendedora_nombre.replace(' ','_')}_{date.today().strftime('%Y%m%d')}.html"
+        st.download_button(
+            label="📄 Descargar Guía de Navegación",
+            data=html_guia,
+            file_name=nombre_archivo,
+            mime="text/html",
+            use_container_width=True,
+            type="primary"
+        )
+        
+        if st.button("🗑️ Limpiar Toda la Ruta", use_container_width=True): 
+            st.session_state.ruta_ferreterias = []
+            st.session_state.ruta_obras = []
+            st.rerun()
 
 # ==============================================================================
 # AUXILIAR: NORMALIZACIÓN ESTÁNDAR PARA UNIÓN DE CAPAS (Mayúsculas/Minúsculas/Acentos)
@@ -953,12 +1018,19 @@ if nav_principal == "🗺️ 1. Mapa Oportunidades y Obras":
                             unsafe_allow_html=True
                         )
                         if pd.notnull(row.get('url_seia')) and str(row.get('url_seia')).startswith("http"):
-                            c_lk, c_sc = st.columns(2)
+                            c_lk, c_sc, c_rt = st.columns([1.2, 1, 1])
                             with c_lk: 
-                                st.link_button("🔗 Ficha SEIA", str(row['url_seia']), use_container_width=True)
+                                st.link_button("🔗 SEIA", str(row['url_seia']), use_container_width=True)
                             with c_sc:
-                                if st.button("📧 Contacto", key=f"s_{idx}", use_container_width=True): 
+                                if st.button("📧 Correos", key=f"s_{idx}", use_container_width=True): 
                                     st.session_state[f"c_{idx}"] = extraer_correo_seia(row['url_seia'])
+                            with c_rt:
+                                if idx not in st.session_state.ruta_obras:
+                                    if st.button("➕ Ruta", key=f"ro_{idx}", use_container_width=True): 
+                                        st.session_state.ruta_obras.append(idx)
+                                        st.rerun()
+                                else: 
+                                    st.button("✅ Ok", disabled=True, key=f"ro_ok_{idx}", use_container_width=True)
                             if f"c_{idx}" in st.session_state: 
                                 st.info(st.session_state[f"c_{idx}"])
             else:
